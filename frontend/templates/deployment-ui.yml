@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,6 +8,7 @@ metadata:
     app: ui
 spec:
   replicas: {{ .Values.replicaCount }}
+  minReadySeconds: 60
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -31,34 +33,29 @@ spec:
                 do echo waiting for myservice;
                 sleep 60;
               done;
-      # initContainers:
-      #   - name: init-container
-      #     image: busybox:1.28
-      #     command: ['sh', '-c', 'until nslookup load-balancer-ui; do echo waiting for load-balancer-ui; sleep 60; done;']
+
       containers:
       - name: ui
         image: {{ .Values.imageFrontend }}
         ports:
-        - name: live-port
-          containerPort: 3000
+          - name: live-port
+            containerPort: 3000
+        resources:
+          requests:
+            memory: "8Mi"
+            cpu: "1m"
         livenessProbe:
           httpGet:
             path: /
             port: 3000
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /
             port: 3000
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60
           periodSeconds: 10
-        env:
-          - name: url
-            valueFrom:
-              configMapKeyRef:
-                name: {{ .Release.Name }}-configmap-ui
-                key: url
       imagePullSecrets:
       - name: {{ .Release.Name }}-registrykey
-
+      
